@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot EtdIA</title>
+    <link href="https://fonts.googleapis.com/css?family=Merriweather:400,700&display=swap" rel="stylesheet">
+    <style>
+        /* Styles généraux pour le conteneur du chatbot */
+        #etdcia-chat {
+            position: fixed;
+            bottom: 20px;
+            left: 20px; /* Positionné à gauche */
+            z-index: 9999;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* Style du bouton d'ouverture/fermeture du chat */
+        #etdcia-chat #open-chat-button {
+            background-color: #1e40af;
+            color: white;
+            width: 60px;
+            height: 60px;
+            border: none;
+            border-radius: 50%;
+            font-size: 28px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            position: relative;
+            z-index: 10000;
+        }
+
+        #etdcia-chat #open-chat-button:hover {
+            background-color: #0d2a70;
+            transform: scale(1.05);
+        }
+
+        /* Style de la boîte de chat */
+        #chat-box {
+            display: none;
+            flex-direction: column;
+            width: 4cm;           /* largeur 4cm */
+            max-width: 100vw;
+            height: 8cm;          /* hauteur 8cm */
+            max-height: 100vh;
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.25);
+            overflow: hidden;
+            position: absolute;
+            bottom: 70px;
+            left: 0;
+        }
+
+        /* En-tête du chat : dégradé vert -> orange */
+        #chat-box .chat-header {
+            background: linear-gradient(90deg, #43ea5e 0%, #ff9800 100%);
+            color: white;
+            padding: 12px;
+            font-weight: bold;
+            text-align: center;
+            font-size: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+
+        /* Conteneur des boutons de langue */
+        #chat-box .language-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Styles des boutons de langue */
+        #chat-box .language-buttons button {
+            background: linear-gradient(90deg, #43ea5e 0%, #ff9800 100%);
+            color: white;
+            border: none;
+            padding: 3px 7px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 7.5px !important;
+            min-width: 22px;
+            font-family: 'Merriweather', serif;
+            font-weight: bold;
+            transition: background-color 0.2s ease;
+        }
+
+        #chat-box .language-buttons button:hover {
+            background: linear-gradient(90deg, #2ecc40 0%, #ff9800 100%);
+        }
+
+        /* Zone de contenu des messages */
+        #chat-content {
+            padding: 15px;
+            flex-grow: 1;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+            font-size: 14px;
+            line-height: 1.6;
+            word-wrap: break-word;
+        }
+
+        /* Conteneur pour l'entrée utilisateur */
+        #chat-box .chat-input-area {
+            padding: 10px;
+            border-top: 1px solid #e0e0e0;
+            background-color: #ffffff;
+            display: flex;
+            align-items: center;
+        }
+
+        #user-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            margin-right: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        #chat-box .chat-input-area button {
+            background: linear-gradient(90deg, #43ea5e 0%, #ff9800 100%);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        #chat-box .chat-input-area button:hover {
+            background: linear-gradient(90deg, #2ecc40 0%, #ff9800 100%);
+        }
+
+        /* Styles des messages individuels */
+        .message-container {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            max-width: 100%;
+        }
+
+        /* Style des avatars */
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin-right: 10px;
+            background-color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .avatar.etdcia {
+            background-color: transparent;
+        }
+
+        .avatar.user {
+            background-color: #4CAF50;
+            order: 2; /* Place l'avatar utilisateur à droite */
+            margin-left: 10px;
+            margin-right: 0;
+        }
+
+        /* Styles des bulles de message */
+        .message-bubble {
+            padding: 10px 15px;
+            border-radius: 18px;
+            max-width: 75%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            line-height: 1.5;
+            font-size: 14px;
+        }
+
+        .message-bubble.etdcia {
+            background-color: #e7effe;
+            color: #333;
+            align-self: flex-start;
+        }
+
+        .message-bubble.user {
+            background-color: #DCF8C6;
+            color: #333;
+            align-self: flex-end;
+            margin-left: auto;
+            text-align: left;
+        }
+
+        /* Message de bienvenue défilant */
+        .welcome-marquee-container {
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+            margin-bottom: 15px;
+            background-color: #fff8e1; /* Fond très clair pour le message */
+            padding: 8px 0;
+            border-radius: 8px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+
+        .welcome-marquee {
+            display: inline-block;
+            animation: welcomeMarquee 30s linear 1; /* 1 seul passage */
+            font-style: italic;
+            font-family: 'Cooper Black', serif !important;
+            font-size: 9px !important;
+            background: linear-gradient(90deg, orange, black);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+            color: orange;
+            font-weight: bold;
+            padding-left: 100%;
+        }
+
+        /* Keyframes pour l'animation de défilement */
+        @keyframes welcomeMarquee {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* Suggestions de questions */
+        .suggested-questions-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 15px;
+            background-color: #f0f0f0;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .suggested-questions-list li {
+            cursor: pointer;
+            color: #1e40af;
+            text-decoration: underline;
+            margin-bottom: 8px;
+            font-size: 13.5px;
+            transition: color 0.2s ease;
+        }
+        .suggested-questions-list li:hover {
+            color: #0d2a70;
+        }
+
+        /* Style pour les liens internes du site dans les réponses */
+        .chat-link {
+            color: #0056b3;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .chat-link:hover {
+            color: #003366;
+        }
+
+        body, #etdcia-chat, #chat-content, .message-bubble, .chat-header, .chat-input-area, .suggested-questions-list, #user-input, #chat-box .chat-input-area button {
+    font-family: 'Merriweather', serif !important;
+    font-size: 8px !important;
+}
+
+#chat-content, .message-bubble, .suggested-questions-list li {
+    color: #111 !important;
+    font-size: 8px !important;
+}
+
+.message-bubble {
+    font-size: 8px !important;
+    padding: 6px 10px !important;
+    border-radius: 12px !important;
+    max-width: 75%;
+}
+
+#chat-box .chat-header {
+    font-size: 9px !important;
+}
+
+.suggested-questions-list li {
+    font-size: 8px !important;
+}
+
+#user-input, #chat-box .chat-input-area button {
+    font-size: 8px !important;
+}
+
+.avatar-label {
+    font-size: 7px !important;
+    margin-top: -2px;
+    font-family: 'Merriweather', serif;
+    font-weight: bold;
+    text-align: center;
+    line-height: 1;
+}
+
+.avatar-label-etdcia {
+    color: #176d36;
+}
+
+.avatar-label-user {
+    color: orange;
+}
+
+.avatar {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 12px !important;
+    margin-right: 5px !important;
+    margin-left: 0 !important;
+    margin-bottom: 0 !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    background: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+/* Message d'alerte langue ou champ vide */
+#lang-alert, #empty-alert {
+    position: absolute;
+    left: 50%;
+    bottom: 10px;
+    transform: translateX(-50%);
+    background: #ff9800;
+    color: #fff;
+    font-size: 8px;
+    padding: 4px 12px;
+    border-radius: 8px;
+    z-index: 99999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+}
+#lang-alert.show, #empty-alert.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+    </style>
+</head>
+<body>
+
+<div id="etdcia-chat">
+    <button id="open-chat-button" onclick="toggleChat()">
+        🤖
+    </button>
+    
+    <div id="chat-box">
+        <div class="chat-header">
+            <span id="chat-title">EtdIA - Assistant Etudencia</span>
+            <div class="language-buttons">
+                <button onclick="setLanguage('fr')" id="lang-fr-button">Fr</button>
+                <button onclick="setLanguage('en')" id="lang-en-button">En</button>
+            </div>
+        </div>
+        
+        <div id="chat-content">
+            </div>
+        
+        <div class="chat-input-area">
+            <input id="user-input" type="text" placeholder="Pose ta question..." onkeydown="if(event.key === 'Enter') sendMessage()">
+            <button onclick="sendMessage()" id="send-button">Envoyer</button>
+        </div>
+    </div>
+</div>
+
+<div id="lang-alert"></div>
+<div id="empty-alert"></div>
+
+<script>
+    // --- Début des données (FAQ et traductions) ---
+    // Ces données simulent data_fr.js et data_en.js pour jsFiddle
+    // En production, ces données seraient chargées depuis des fichiers séparés.
+
+    // Base de données des questions-réponses en français
+    const data_fr = {
+        // Salutations (les mots clés seront traités séparément)
+        greetings: [
+            "Bonjour ! Je suis EtdIA, ton assistant Etudencia. Comment puis-je t'aider aujourd'hui ?",
+            "Salut ! N'hésite pas si tu as des questions sur tes études en France.",
+            "Hello ! Je suis là pour t'éclairer sur tes démarches. Dis-moi tout !",
+            "Ravi de te parler ! Pose ta question et je ferai de mon mieux pour y répondre."
+        ],
+        // Mots-clés pour détecter les salutations
+        greetingKeywords: ["bonjour", "bonsoir", "salut", "slt", "hello", "hi", "coucou", "yo"],
+        
+        // Message de bienvenue défilant
+        welcomeMarquee: "Bonjour et bienvenue sur notre site web et dans notre chatbot EtdIA qui est moi. Bonne démarche avec Etudencia et surtout bonne chance pour ton projet d'étude en France. Je suis là pour t'aider à réussir ton projet. N'hésitez pas à me poser vos questions. Ton assistant EtdIA.",
+        
+        // Questions/réponses de la FAQ
+        faq: {
+            "comment faire la procédure campus france": "Pour faire ta procédure Campus France, tu dois suivre les étapes suivantes : créer un dossier en ligne, choisir tes formations, déposer les documents requis, payer les frais, et passer un entretien. Plus de détails sur notre page <a href='/Procédures' class='chat-link'>Procédures</a>.",
+            "comment faire une demande de logement": "Pour trouver un logement étudiant en France, tu peux consulter le CROUS, les résidences privées, ou les plateformes dédiées. Etudencia peut aussi t'accompagner dans cette démarche. Rends-toi sur la section <a href='/Ressources' class='chat-link'>Ressources</a>.",
+            "comment se loger en france": "Le logement en France est une étape clé. Options : CROUS, résidences étudiantes privées, colocation, studio individuel. Commence tes recherches tôt. Nous avons des guides sur la page <a href='/Ressources' class='chat-link'>Ressources</a>.",
+            "comment obtenir le visa étudiant": "Après l'acceptation de Campus France, tu dois déposer ta demande sur France-Visas, prendre rendez-vous au consulat et fournir les documents requis. Tu trouveras les infos complètes dans la section <a href='/Procédures' class='chat-link'>Procédures</a>.",
+            "quel est le cout des etudes en france": "Les frais de scolarité varient. Pour les universités publiques, c'est environ 170 € pour la licence et 243 € pour le master par an. Les écoles privées sont plus chères. Le coût de la vie est aussi à considérer. Voir notre <a href='/FAQ' class='chat-link'>FAQ</a>.",
+            "puis je travailler pendant mes etudes": "Oui, avec un visa étudiant, tu as le droit de travailler jusqu’à 964 heures par an (environ 20h/semaine) pour compléter tes revenus. Renseigne-toi sur les règles en vigueur.",
+            "documents campus france": "Les documents requis pour Campus France incluent : tes relevés de notes, diplômes, pièce d'identité, lettre de motivation, CV, justificatifs de niveau de langue (TCF, DELF, DALF ou TEF si nécessaire) et le justificatif du paiement des frais de dossier. La liste complète est sur la page <a href='/Procédures' class='chat-link'>Documents Essentiels</a>.",
+            "comment choisir bonne formation": "Pour choisir ta formation, définis ton projet professionnel, explore les filières liées à ce domaine sur Campus France et les sites des universités. Tiens compte de tes intérêts, de tes résultats académiques et des débouchés. Nous pouvons t'aider avec des conseils sur notre <a href='/Ressources' class='chat-link'>page Ressources</a>.",
+            "difference licence bts": "La licence est une formation universitaire de 3 ans après le bac. Le BTS (Brevet de Technicien Supérieur) est une formation professionnelle de 2 ans, souvent axée sur l'insertion rapide dans le monde du travail ou la poursuite d'études courtes. Les deux sont de niveaux Bac+3 et Bac+2 respectivement.",
+            "changer filiere bac": "Oui, il est possible de changer de filière après le bac en fonction de ton dossier et de la formation visée. Des passerelles existent, mais il faut bien préparer ton projet et justifier ta motivation.",
+            "postuler plusieurs formations": "Oui, sur Campus France, tu peux formuler jusqu'à 7 vœux, avec une limite de 3 vœux par établissement. Cela augmente tes chances d'être accepté. Prépare chaque vœu avec soin.",
+            "domaines les plus demandes": "Les domaines les plus demandés en France pour les étudiants étrangers incluent l'informatique, la gestion, l'ingénierie, la santé (sous conditions), les langues, le commerce, le droit et les sciences. Ces secteurs offrent de bonnes perspectives d'emploi.",
+            "formation reconnue": "Pour savoir si une formation est reconnue, vérifie si l'établissement est public ou s'il est accrédité par l'État français. Tu peux aussi consulter le Répertoire National des Certifications Professionnelles (RNCP) de France Compétences.",
+            "iut universite ecole": "L'IUT (Institut Universitaire de Technologie) propose des formations plus professionnalisantes (BUT) en 3 ans. L'université est plus généraliste, avec des licences et masters. Les écoles (ingénieurs, commerce) sont souvent plus sélectives et offrent des diplômes spécifiques.",
+            "formation alternance": "Une formation en alternance combine des périodes de cours théoriques avec des périodes de travail en entreprise. C'est une excellente façon d'acquérir de l'expérience professionnelle tout en étant rémunéré pendant tes études. C'est très valorisé en France.",
+            "etudes en anglais": "Oui, de plus en plus d'universités et d'écoles françaises proposent des programmes entièrement enseignés en anglais, notamment au niveau Master et Doctorat, pour attirer les étudiants internationaux. Renseigne-toi directement auprès des établissements.",
+            "age limite etudier": "Il n'y a pas d'âge limite officiel pour étudier en France. Cependant, pour certaines bourses ou procédures spécifiques, des critères d'âge peuvent s'appliquer. La motivation et le projet d'étude sont les éléments les plus importants.",
+            "passer obligatoirement campus france": "La procédure Campus France est obligatoire pour la plupart des étudiants étrangers qui résident dans un pays relevant de la procédure Études en France (hors Union Européenne). Certaines exceptions existent pour des écoles privées spécifiques.",
+            "cout procedure campus france": "Les frais de dossier Campus France varient selon les pays, généralement entre 50 et 100 euros. Ces frais sont à régler lors de la soumission de ton dossier en ligne et sont non remboursables.",
+            "modifier mon dossier": "Une fois ton dossier Campus France soumis, les modifications majeures sont généralement limitées. Tu peux parfois ajouter des pièces complémentaires si demandé par Campus France ou un établissement, mais pas modifier les vœux ou informations principales.",
+            "passer entretien campus france": "Oui, pour la majorité des pays relevant de la procédure Études en France, un entretien pédagogique à Campus France est obligatoire. C'est l'occasion de présenter ton projet d'études et de justifier tes choix.",
+            "combien voeux campus france": "Comme mentionné, tu peux formuler jusqu'à 7 vœux de formation via la plateforme Campus France, avec un maximum de 3 vœux par établissement pour une même année universitaire.",
+            "quand deposer dossier campus france": "Les dates limites pour déposer un dossier Campus France varient chaque année, mais se situent généralement entre novembre et mars pour une rentrée en septembre de l'année suivante. Il est crucial de consulter le calendrier de ton pays.",
+            "savoir dossier bon": "Un bon dossier Campus France est complet, cohérent, avec de bons résultats académiques, une lettre de motivation et un CV bien rédigés qui mettent en avant la logique de ton parcours et la pertinence de ton projet d'études en France.",
+            "rediger lettre motivation": "Une lettre de motivation doit être structurée : introduction (qui tu es, ce que tu veux), développement (pourquoi cette formation, cet établissement, tes compétences), et conclusion (tes objectifs futurs). Sois concis, clair et précis.",
+            "postuler deux niveaux licence master": "Il est possible de postuler à différents niveaux (Licence et Master) simultanément sur Campus France, à condition de justifier clairement la pertinence de chaque choix dans ta lettre de motivation ou ton argumentaire.",
+            "documents fournir campus france": "En plus des relevés de notes et diplômes, tu devras fournir une pièce d'identité, ton CV, une photo d'identité récente, et des justificatifs de niveau de langue française si nécessaire. Pense à bien scanner tous tes documents en haute qualité.",
+            "traduire mes documents": "Oui, tous les documents rédigés dans une langue autre que le français doivent être traduits par un traducteur assermenté (traducteur-expert près une cour d'appel en France ou son équivalent dans ton pays).",
+            "creer bon cv etudiant": "Pour un CV étudiant, privilégie la clarté et la concision (une page). Inclue tes informations personnelles, ton parcours académique, tes expériences (stages, associatives), tes compétences linguistiques et informatiques. Mets en avant tes atouts.",
+            "scanner documents telephone": "Il est possible de scanner des documents avec une application sur téléphone, mais assure-toi que les images soient de très bonne qualité, bien lisibles, sans reflets ni zones sombres, et que le format corresponde aux exigences de Campus France.",
+            "fournir lettre recommandation": "Une lettre de recommandation n'est pas toujours obligatoire pour la procédure Campus France Licence, mais elle est fortement recommandée et souvent exigée pour les candidatures en Master, Doctorat ou dans certaines écoles très sélectives.",
+            "pages lettre motivation": "Idéalement, une lettre de motivation tient sur une page (maximum 1,5 page) pour rester concise et percutante. Les recruteurs apprécient la capacité à synthétiser.",
+            "manque releve notes": "Oui, un dossier Campus France incomplet, notamment par l'absence de relevés de notes essentiels, risque fortement d'être rejeté. Assure-toi d'avoir toutes les pièces requises.",
+            "certificat langue francaise": "Pour de nombreuses formations en France, un certificat de niveau de langue française est exigé (TCF, DELF, DALF, TEF). Le niveau B2 est souvent le minimum requis, mais cela dépend de la formation. Vérifie les exigences spécifiques.",
+            "mettre certificats attestations dossier": "Oui, tu peux inclure dans ton dossier tous les certificats ou attestations qui prouvent tes compétences, tes engagements (bénévolat, stages), ou des prix académiques. Cela enrichit ton profil et montre ta motivation.",
+            "diplome provisoire accepte": "Un diplôme provisoire est généralement accepté par Campus France et les établissements français, à condition qu'il soit délivré officiellement par ton établissement d'origine et qu'il porte les signatures et cachets nécessaires.",
+            "tout savoir etudencia": "Etudencia est une plateforme et un accompagnateur pour les étudiants africains souhaitant étudier en France. Nous t'aidons dans toute ta procédure Campus France, de l'orientation au visa, en passant par le logement et l'installation. Visite notre page <a href='/A-propos' class='chat-link'>À propos</a> pour en savoir plus."
+        },
+        // Suggestions de questions affichées au démarrage
+        initialSuggestions: [
+            "Quels sont les documents pour Campus France ?",
+            "Comment obtenir un visa étudiant ?",
+            "Puis-je travailler pendant mes études ?",
+            "Comment trouver un logement étudiant ?",
+            "Quel est le coût des études en France ?",
+            "Comment choisir la bonne formation en France ?",
+            "C’est quoi une formation en alternance ?",
+            "Dois-je passer un entretien Campus France ?",
+            "Comment faire ma procédure Campus France ?",
+            "Tout savoir sur Etudencia"
+        ],
+        // Messages du chatbot (non-FAQ)
+        botMessages: {
+            noDirectAnswer: "Je n'ai pas trouvé de réponse directe à votre question. Voici des suggestions de ce que vous vouliez sûrement dire :",
+            noSuggestionFound: "Désolé, je n'ai pas trouvé de suggestions pertinentes pour votre question. Pourriez-vous reformuler ou poser une question plus précise ?",
+            sendButton: "Envoyer",
+            inputPlaceholder: "Pose ta question...",
+            youLabel: "Vous"
+        }
+    };
+
+    // Base de données des questions-réponses en anglais
+    const data_en = {
+        greetings: [
+            "Hello! I'm EtdIA, your Etudencia assistant. How can I help you today?",
+            "Hi there! Don't hesitate if you have questions about your studies in France.",
+            "Hello! I'm here to clarify your steps. Tell me everything!",
+            "Nice talking to you! Ask your question and I'll do my best to answer."
+        ],
+        greetingKeywords: ["hello", "hi", "hey", "good morning", "good evening"],
+        
+        welcomeMarquee: "Hello and welcome to our website and to our chatbot, EtdIA, which is me. I wish you good luck with your studies in France, especially with Etudencia. I'm here to help you succeed. Don't hesitate to ask me any questions. Your EtdIA assistant.",
+        
+        faq: {
+            "how to do campus france procedure": "To complete your Campus France procedure, you need to follow these steps: create an online application, choose your programs, submit required documents, pay fees, and attend an interview. More details on our <a href='/Procedures' class='chat-link'>Procedures</a> page.",
+            "how to apply for student accommodation": "To find student accommodation in France, you can check CROUS, private residences, or dedicated student platforms. Etudencia can also assist you in this process. Visit the <a href='/Ressources' class='chat-link'>Resources</a> section for help.",
+            "how to find housing in france": "Housing in France is a key step. Options: CROUS, private student residences, flatsharing, individual studios. Start your search early. We have guides on the <a href='/Ressources' class='chat-link'>Resources</a> page.",
+            "how to obtain student visa": "After Campus France acceptance, you must submit your application on France-Visas, make an appointment at the consulate, and provide the required documents. You'll find full information in the <a href='/Procedures' class='chat-link'>Procedures</a> section.",
+            "what is the cost of studies in france": "Tuition fees vary. For public universities, it's about €170 for Bachelor's and €243 for Master's per year. Private schools are more expensive. Living costs should also be considered. See our <a href='/FAQ' class='chat-link'>FAQ</a>.",
+            "can i work during my studies": "Yes, with a student visa, you are allowed to work up to 964 hours per year (approx. 20h/week) to supplement your income. Inform yourself about current regulations.",
+            "campus france documents": "Required documents for Campus France include: your academic transcripts, diplomas, ID, cover letter, CV, language proficiency certificates (TCF, DELF, DALF, or TEF if needed) and proof of application fee payment. The full list is on the <a href='/Procedures' class='chat-link'>Essential Documents</a> page.",
+            "how to choose right program": "To choose your program, define your career project, explore related fields on Campus France and university websites. Consider your interests, academic results, and career prospects. We can help you with advice on our <a href='/Ressources' class='chat-link'>Resources page</a>.",
+            "difference bachelor bts": "A Bachelor's degree (Licence) is a 3-year university program after high school. A BTS (Brevet de Technicien Supérieur) is a 2-year vocational program, often focused on quick job integration or short-term higher education. They are equivalent to EQF Level 6 (Bachelor) and Level 5 (Associate's) respectively.",
+            "change major after high school": "Yes, it is possible to change your major after high school depending on your academic record and the desired program. Pathways exist, but you need to thoroughly prepare your project and justify your motivation.",
+            "apply multiple programs": "Yes, on Campus France, you can apply for up to 7 programs, with a limit of 3 programs per institution. This increases your chances of acceptance. Prepare each application carefully.",
+            "most popular fields": "The most in-demand fields in France for international students include computer science, management, engineering, health (with conditions), languages, business, law, and sciences. These sectors offer good career prospects.",
+            "recognized program": "To know if a program is recognized, check if the institution is public or accredited by the French state. You can also consult the National Directory of Professional Certifications (RNCP) from France Compétences.",
+            "iut university school": "IUT (University Institute of Technology) offers more vocational programs (BUT) over 3 years. University is more general, with Bachelor's and Master's degrees. Schools (engineering, business) are often more selective and offer specific diplomas.",
+            "apprenticeship program": "An apprenticeship program combines periods of theoretical courses with periods of work in a company. It's an excellent way to gain professional experience while being paid during your studies. It's highly valued in France.",
+            "studies in english": "Yes, more and more French universities and schools offer programs entirely taught in English, especially at Master's and PhD levels, to attract international students. Inquire directly with the institutions.",
+            "age limit to study": "There is no official age limit to study in France. However, for certain scholarships or specific procedures, age criteria may apply. Motivation and study project are the most important elements.",
+            "is campus france mandatory": "The Campus France procedure is mandatory for most international students residing in a country that falls under the 'Études en France' procedure (outside the European Union). Some exceptions exist for specific private schools.",
+            "campus france application fee": "Campus France application fees vary by country, generally between 50 and 100 euros. These fees are paid when submitting your online application and are non-refundable.",
+            "modify my application": "Once your Campus France application is submitted, major modifications are generally limited. You may sometimes add supplementary documents if requested by Campus France or an institution, but not modify main choices or information.",
+            "campus france interview": "Yes, for most countries under the 'Études en France' procedure, an educational interview at Campus France is mandatory. It's an opportunity to present your study project and justify your choices.",
+            "how many choices campus france": "As mentioned, you can make up to 7 program choices via the Campus France platform, with a maximum of 3 choices per institution for the same academic year.",
+            "when to submit campus france application": "Deadlines for submitting a Campus France application vary each year, but generally fall between November and March for an intake in September of the following year. It is crucial to check the calendar for your country.",
+            "how to know good application": "A good Campus France application is complete, coherent, with good academic results, a well-written cover letter and CV that highlight the logic of your academic path and the relevance of your study project in France.",
+            "write cover letter": "A cover letter should be structured: introduction (who you are, what you want), development (why this program, this institution, your skills), and conclusion (your future goals). Be concise, clear, and precise.",
+            "apply two levels bachelor master": "It is possible to apply at different levels (Bachelor's and Master's) simultaneously on Campus France, provided you clearly justify the relevance of each choice in your cover letter or statement.",
+            "documents to provide campus france": "In addition to academic transcripts and diplomas, you will need to provide an ID, your CV, a recent passport photo, and French language proficiency certificates if necessary. Be sure to scan all your documents in high quality.",
+            "translate my documents": "Yes, all documents written in a language other than French must be translated by a sworn translator (a certified translator by a court of appeal in France or its equivalent in your country).",
+            "create good student cv": "For a student CV, prioritize clarity and conciseness (one page). Include your personal information, academic background, experiences (internships, volunteering), language and IT skills. Highlight your strengths.",
+            "scan documents phone": "It is possible to scan documents with a phone app, but make sure the images are of very good quality, legible, without reflections or dark areas, and that the format meets Campus France requirements.",
+            "provide recommendation letter": "A letter of recommendation is not always mandatory for the Campus France Bachelor's procedure, but it is highly recommended and often required for Master's, PhD applications, or in certain highly selective schools.",
+            "cover letter pages": "Ideally, a cover letter should be one page long (maximum 1.5 pages) to remain concise and impactful. Recruiters appreciate the ability to synthesize.",
+            "missing transcripts": "Yes, an incomplete Campus France application, especially due to missing essential academic transcripts, is highly likely to be rejected. Make sure you have all required documents.",
+            "french language certificate": "For many programs in France, a French language proficiency certificate is required (TCF, DELF, DALF, TEF). Level B2 is often the minimum requirement, but it depends on the program. Check specific requirements.",
+            "add certificates attestations to application": "Yes, you can include any certificates or attestations in your application that prove your skills, commitments (volunteering, internships), or academic awards. This enriches your profile and shows your motivation.",
+            "provisional diploma accepted": "A provisional diploma is generally accepted by Campus France and French institutions, provided it is officially issued by your home institution and bears the necessary signatures and stamps.",
+            "all about etudencia": "Etudencia is a platform and guide for African students wishing to study in France. We assist you throughout your Campus France procedure, from orientation to visa, including accommodation and settling in. Visit our <a href='/A-propos' class='chat-link'>About Us</a> page to learn more."
+        },
+        initialSuggestions: [
+            "What are the documents for Campus France?",
+            "How to obtain a student visa?",
+            "Can I work during my studies?",
+            "How to find student accommodation?",
+            "What is the cost of studies in France?",
+            "How to choose the right program in France?",
+            "What is an apprenticeship program?",
+            "Do I have to attend a Campus France interview?",
+            "How to do my Campus France procedure?",
+            "All about Etudencia"
+        ],
+        botMessages: {
+            noDirectAnswer: "I didn't find a direct answer to your question. Here are some suggestions of what you might have meant:",
+            noSuggestionFound: "Sorry, I couldn't find any relevant suggestions for your question. Could you please rephrase or ask a more specific question?",
+            sendButton: "Send",
+            inputPlaceholder: "Ask your question...",
+            youLabel: "You"
+        }
+    };
+
+    // Mapping des chemins simplifiés vers les liens du site Etudencia
+    // IMPORTANT : Remplacez les "#" par les URL réelles de votre site web
+    const siteLinks = {
+        "/Accueil": "#",
+        "/Procédures": "#", 
+        "/Procedures": "#", // Version anglaise
+        "/Ressources": "#",
+        "/A-propos": "#",
+        "/Contact": "#",
+        "/FAQ": "#",
+        "/Procédures/Étapes-Détaillées": "#", 
+        "/Procédures/Documents-Essentiels": "#",
+        // Ajoutez d'autres chemins si nécessaire
+    };
+
+    // Variable pour stocker la langue actuelle du chatbot
+    let currentLanguage = 'fr'; // 'fr' par défaut
+
+    // Référence aux données de la langue actuelle
+    let currentData = data_fr;
+
+    // --- Fonctions utilitaires ---
+
+    /**
+     * Nettoie et normalise une chaîne de caractères pour la comparaison (minuscules, sans accents, sans ponctuation).
+     * @param {string} text - Le texte à normaliser.
+     * @returns {string} Le texte normalisé.
+     */
+    function normalizeText(text) {
+        return text.toLowerCase()
+                .normalize("NFD") // Décompose les caractères accentués
+                .replace(/[\u0300-\u036f]/g, "") // Supprime les diacritiques
+                .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()«»’"’]/g, "") // Supprime la ponctuation
+                .replace(/\s+/g, ' ') // Remplace multiples espaces par un seul
+                .trim(); // Supprime les espaces au début/fin
+    }
+
+    /**
+     * Génère un lien HTML cliquable si le texte contient une référence à une section du site.
+     * @param {string} text - Le texte à analyser pour les liens.
+     * @returns {string} Le texte avec les liens HTML si trouvés.
+     */
+    function processLinks(text) {
+        let processedText = text;
+        // Parcours tous les liens définis dans siteLinks
+        for (const path in siteLinks) {
+            // Crée une expression régulière pour trouver le nom de la page (ex: "Procédures")
+            // avec ou sans accents, et insensible à la casse
+            const pageName = path.split('/').pop().replace(/-/g, ' '); 
+            // Regex pour trouver le nom de la page et éviter de re-traiter des liens déjà existants
+            const regex = new RegExp(`(<a[^>]*>.*?<\/a>)|\\b(${pageName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})\\b`, 'gi'); 
+            
+            processedText = processedText.replace(regex, (match, p1, p2) => {
+                if (p1) { // Si c'est déjà un lien HTML
+                    return match;
+                } else if (p2 && siteLinks[path]) { // Si c'est un nom de page et qu'un lien existe
+                    const linkPath = siteLinks[path]; 
+                    return `<a href="${linkPath}" class="chat-link" target="_blank">${match}</a>`;
+                }
+                return match; // Retourne le match original si aucune condition n'est remplie
+            });
+        }
+        return processedText;
+    }
+
+    /**
+     * Retourne une réponse de salutation aléatoire.
+     * @returns {string} Une salutation aléatoire.
+     */
+    function getRandomGreetingResponse() {
+        const randomIndex = Math.floor(Math.random() * currentData.greetings.length);
+        return currentData.greetings[randomIndex];
+    }
+
+    /**
+     * Ajoute un message à la boîte de chat et sauvegarde la conversation.
+     */
+    function addMessage(sender, text, avatarContent) {
+        const chatContent = document.getElementById("chat-content");
+        const messageContainer = document.createElement('div');
+        messageContainer.classList.add('message-container');
+
+        // Avatar + label
+        const avatarDiv = document.createElement('div');
+        avatarDiv.classList.add('avatar');
+        avatarDiv.classList.add(sender);
+        avatarDiv.innerHTML = avatarContent;
+
+        // Ajoute le label sous l'avatar
+        const label = document.createElement('span');
+        label.classList.add('avatar-label');
+        if (sender === 'etdcia') {
+            label.classList.add('avatar-label-etdcia');
+            label.textContent = 'EtdIA';
+        } else {
+            label.classList.add('avatar-label-user');
+            label.textContent = currentData.botMessages.youLabel || 'Vous';
+        }
+        avatarDiv.appendChild(label);
+
+        const bubbleDiv = document.createElement('div');
+        bubbleDiv.classList.add('message-bubble');
+        bubbleDiv.classList.add(sender);
+        bubbleDiv.innerHTML = processLinks(text); 
+
+        if (sender === 'user') {
+            messageContainer.style.justifyContent = 'flex-end';
+            messageContainer.appendChild(bubbleDiv);
+            messageContainer.appendChild(avatarDiv);
+        } else {
+            messageContainer.appendChild(avatarDiv);
+            messageContainer.appendChild(bubbleDiv);
+        }
+
+        chatContent.appendChild(messageContainer);
+        chatContent.scrollTop = chatContent.scrollHeight;
+
+        // Sauvegarde la conversation dans le localStorage
+        saveConversation();
+    }
+
+    /**
+     * Sauvegarde le contenu HTML de la conversation dans le localStorage.
+     */
+    function saveConversation() {
+        const chatContent = document.getElementById("chat-content");
+        localStorage.setItem('etdcia_conversation', chatContent.innerHTML);
+        localStorage.setItem('etdcia_language', currentLanguage);
+    }
+
+    /**
+     * Restaure la conversation depuis le localStorage.
+     */
+    function restoreConversation() {
+        const chatContent = document.getElementById("chat-content");
+        const saved = localStorage.getItem('etdcia_conversation');
+        if (saved) {
+            chatContent.innerHTML = saved;
+            // Réactive les événements sur les suggestions restaurées
+            const suggestionLis = chatContent.querySelectorAll('.suggested-questions-list li');
+            suggestionLis.forEach(li => {
+                li.onclick = function() { autoAsk(this.textContent); };
+            });
+        }
+    }
+
+    /**
+     * Ouvre ou ferme la boîte de chat.
+     * Restaure la conversation si elle existe, sinon affiche le message de bienvenue/suggestions.
+     */
+    function toggleChat() {
+        const chatBox = document.getElementById("chat-box");
+        const isOpen = chatBox.style.display === "flex";
+
+        if (!isOpen) {
+            chatBox.style.display = "flex";
+            // Restaure la conversation si elle existe
+            if (localStorage.getItem('etdcia_conversation')) {
+                // Restaure la langue si elle a changé
+                const savedLang = localStorage.getItem('etdcia_language');
+                if (savedLang && savedLang !== currentLanguage) {
+                    setLanguage(savedLang);
+                }
+                restoreConversation();
+            } else {
+                document.getElementById("chat-content").innerHTML = '';
+                displayWelcomeAndInitialSuggestions();
+            }
+        } else {
+            chatBox.style.display = "none";
+        }
+    }
+
+    /**
+     * Affiche le message de bienvenue et les 10 suggestions initiales.
+     */
+    function displayWelcomeAndInitialSuggestions() {
+        const chatContent = document.getElementById("chat-content");
+        // Supprime tout message de bienvenue précédent
+        const oldMarquee = chatContent.querySelector('.welcome-marquee-container');
+        if (oldMarquee) oldMarquee.remove();
+
+        // Ajoute le message de bienvenue défilant
+        const welcomeMarqueeDiv = document.createElement('div');
+        welcomeMarqueeDiv.classList.add('welcome-marquee-container');
+        welcomeMarqueeDiv.innerHTML = `<div class="welcome-marquee">${currentData.welcomeMarquee}</div>`;
+        chatContent.appendChild(welcomeMarqueeDiv);
+
+        // Envoie le message de salutation du bot immédiatement
+        setTimeout(() => {
+            addMessage('etdcia', getRandomGreetingResponse(), '🤖');
+
+            // Ensuite, envoie les suggestions après un court délai
+            setTimeout(() => {
+                let suggestionsHtml = `<div style='font-style: italic; margin-top: 15px;'>${currentLanguage === 'fr' ? 'Voici des questions que tu peux poser :' : 'Here are some questions you can ask:'}</div><ul class='suggested-questions-list'>`;
+                currentData.initialSuggestions.slice(0, 10).forEach(q => { // Limite à 10 suggestions
+                    suggestionsHtml += `<li onclick='autoAsk("${q.replace(/"/g, '&quot;')}")'>${q}</li>`;
+                });
+                suggestionsHtml += "</ul>";
+                addMessage('etdcia', suggestionsHtml, '🤖');
+                chatContent.scrollTop = chatContent.scrollHeight;
+            }, 700); // Délai après la salutation
+        }, 500); // Délai avant la salutation pour laisser la marquee apparaître
+    }
+
+    /**
+     * Envoie un message de l'utilisateur au chatbot et traite la réponse.
+     */
+    function sendMessage() {
+        const userInput = document.getElementById("user-input");
+        const question = userInput.value.trim();
+        if (!question) {
+            showEmptyAlert();
+            return;
+        }
+
+        addMessage('user', question, '🧑'); 
+        userInput.value = "";
+
+        const normalizedQuestion = normalizeText(question);
+        const botResponse = getBotResponse(normalizedQuestion); 
+        
+        setTimeout(() => {
+            addMessage('etdcia', botResponse, '🤖');
+            // Si la question était une suggestion de la FAQ (et non une salutation ou incomprise),
+            // alors propose de nouvelles suggestions contextuelles.
+            if (Object.keys(currentData.faq).includes(normalizedQuestion) || 
+                Object.keys(currentData.faq).some(key => normalizeText(key) === normalizedQuestion)) {
+                setTimeout(() => {
+                    displayContextualSuggestions(normalizedQuestion);
+                }, 1000); // Délai après la réponse du bot pour les suggestions contextuelles
+            }
+        }, 700);
+    }
+
+    /**
+     * Fonction pour les questions auto-suggérées (quand l'utilisateur clique sur une suggestion).
+     * @param {string} question - La question suggérée à envoyer.
+     */
+    function autoAsk(question) {
+        document.getElementById("user-input").value = question;
+        sendMessage();
+    }
+
+    /**
+     * Obtient la réponse du chatbot en fonction de la question posée.
+     * Inclut la gestion des salutations, des correspondances FAQ et des suggestions.
+     * @param {string} normalizedQuestion - La question normalisée (minuscules, sans accents, sans ponctuation).
+     * @returns {string} La réponse du chatbot (HTML possible pour les suggestions/liens).
+     */
+    function getBotResponse(normalizedQuestion) {
+        // 1. Gestion des salutations
+        const questionWords = normalizedQuestion.split(' ').filter(word => word.length > 0);
+        const containsGreeting = currentData.greetingKeywords.some(keyword => questionWords.includes(keyword));
+
+        if (containsGreeting) {
+            return getRandomGreetingResponse();
+        }
+
+        // 2. Recherche de correspondance exacte ou très proche dans la FAQ
+        let bestMatch = { question: null, score: 0 };
+
+        for (const faqQuestion in currentData.faq) {
+            const normalizedFaqQuestion = normalizeText(faqQuestion);
+            const faqKeywords = normalizedFaqQuestion.split(' ').filter(word => word.length > 2);
+            
+            let score = 0;
+            questionWords.forEach(word => {
+                if (faqKeywords.includes(word)) {
+                    score++;
+                }
+            });
+
+            if (normalizedFaqQuestion.includes(normalizedQuestion) || normalizedQuestion.includes(normalizedFaqQuestion)) {
+                score += 5; 
+            }
+
+            questionWords.forEach(qWord => {
+                faqKeywords.forEach(fWord => {
+                    if (qWord.includes(fWord) || fWord.includes(qWord)) {
+                        score += 0.5;
+                    }
+                });
+            });
+
+            if (score > bestMatch.score) {
+                bestMatch = { question: faqQuestion, score: score };
+            }
+        }
+
+        if (bestMatch.score > 0) { 
+            return currentData.faq[bestMatch.question];
+        }
+
+        // 3. Si pas de correspondance exacte, recherche par mots-clés pour les suggestions
+        const relevantWords = normalizedQuestion.split(' ').filter(word => word.length > 2);
+        const potentialSuggestions = [];
+
+        if (relevantWords.length > 0) {
+            for (const faqQuestion in currentData.faq) {
+                const normalizedFaqQuestion = normalizeText(faqQuestion);
+                const faqKeywords = normalizedFaqQuestion.split(' ').filter(word => word.length > 2);
+
+                let commonWordsCount = 0;
+                relevantWords.forEach(word => {
+                    if (faqKeywords.includes(word)) {
+                        commonWordsCount++;
+                    }
+                });
+                
+                if (commonWordsCount > 0) {
+                    potentialSuggestions.push({
+                        question: faqQuestion,
+                        score: commonWordsCount 
+                    });
+                }
+            }
+        }
+
+        potentialSuggestions.sort((a, b) => b.score - a.score);
+
+        const finalSuggestions = potentialSuggestions.slice(0, 10); // Limite à 10 suggestions
+
+        if (finalSuggestions.length > 0) {
+            let suggestionsHtml = `${currentData.botMessages.noDirectAnswer}<ul class='suggested-questions-list'>`;
+            finalSuggestions.forEach(item => {
+                suggestionsHtml += `<li onclick='autoAsk("${item.question.replace(/"/g, '&quot;')}")'>${item.question}</li>`;
+            });
+            suggestionsHtml += `</ul>`;
+            return suggestionsHtml;
+        }
+
+        // 4. Aucune correspondance ni suggestion pertinente trouvée
+        return currentData.botMessages.noSuggestionFound;
+    }
+
+    /**
+     * Affiche des suggestions de questions contextuelles basées sur la question précédente de l'utilisateur.
+     * @param {string} lastQuestionNormalized - La question normalisée de l'utilisateur qui a reçu une réponse.
+     */
+    function displayContextualSuggestions(lastQuestionNormalized) {
+        const relevantWords = lastQuestionNormalized.split(' ').filter(word => word.length > 2);
+        const contextualSuggestions = [];
+
+        if (relevantWords.length > 0) {
+            for (const faqQuestion in currentData.faq) {
+                const normalizedFaqQuestion = normalizeText(faqQuestion);
+                // Évite de suggérer la même question ou une question dont la réponse vient d'être donnée
+                if (normalizedFaqQuestion === lastQuestionNormalized) continue;
+
+                const faqKeywords = normalizedFaqQuestion.split(' ').filter(word => word.length > 2);
+                let commonWordsCount = 0;
+                relevantWords.forEach(word => {
+                    if (faqKeywords.includes(word)) {
+                        commonWordsCount++;
+                    }
+                });
+
+                if (commonWordsCount > 0) {
+                    contextualSuggestions.push({
+                        question: faqQuestion,
+                        score: commonWordsCount
+                    });
+                }
+            }
+        }
+
+        contextualSuggestions.sort((a, b) => b.score - a.score);
+        const finalSuggestions = contextualSuggestions.slice(0, 5); // Limite à 5 suggestions contextuelles
+
+        if (finalSuggestions.length > 0) {
+            let suggestionsHtml = `<div style='font-style: italic; margin-top: 15px;'>${currentLanguage === 'fr' ? 'D\'autres questions qui pourraient vous intéresser :' : 'Other questions you might be interested in:'}</div><ul class='suggested-questions-list'>`;
+            finalSuggestions.forEach(item => {
+                suggestionsHtml += `<li onclick='autoAsk("${item.question.replace(/"/g, '&quot;')}")'>${item.question}</li>`;
+            });
+            suggestionsHtml += `</ul>`;
+            
+            setTimeout(() => {
+                addMessage('etdcia', suggestionsHtml, '🤖');
+            }, 500); // Délai pour les suggestions contextuelles
+        }
+    }
+
+
+    /**
+     * Change la langue du chatbot sans rafraîchir la conversation,
+     * mais traduit dynamiquement tous les messages déjà affichés.
+     * @param {string} lang - La langue à définir ('fr' ou 'en').
+     */
+    function showLangAlert(lang) {
+        const alert = document.getElementById('lang-alert');
+        alert.textContent = lang === 'fr'
+            ? "Le français a été choisi"
+            : "English was chosen";
+        alert.classList.add('show');
+        setTimeout(() => alert.classList.remove('show'), 1800);
+    }
+
+    function setLanguage(lang) {
+        currentLanguage = lang;
+        currentData = (lang === 'fr') ? data_fr : data_en;
+
+        // Met à jour les textes de l'interface
+        document.getElementById('lang-fr-button').textContent = 'Fr';
+        document.getElementById('lang-en-button').textContent = 'En';
+        document.getElementById('chat-title').textContent = (lang === 'fr' ? 'EtdIA - Assistant Etudencia' : 'EtdIA - Etudencia Assistant');
+        document.getElementById('send-button').textContent = currentData.botMessages.sendButton;
+        document.getElementById('user-input').placeholder = currentData.botMessages.inputPlaceholder;
+
+        // Recharge tout le chat dans la nouvelle langue
+        document.getElementById("chat-content").innerHTML = '';
+        displayWelcomeAndInitialSuggestions();
+
+        // Affiche l'alerte de langue
+        showLangAlert(lang);
+
+        // Met à jour la langue dans le localStorage
+        localStorage.setItem('etdcia_language', currentLanguage);
+        // Supprime la conversation sauvegardée pour éviter un mélange de langues
+        localStorage.removeItem('etdcia_conversation');
+    }
+
+    // --- Initialisation ---
+    // Démarre le chatbot en français par défaut au chargement de la page
+    document.addEventListener('DOMContentLoaded', () => {
+        setLanguage('fr');
+    });
+
+</script>
+
+</body>
+</html>
